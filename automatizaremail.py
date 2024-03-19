@@ -1,19 +1,32 @@
 #Automatizar envio de email para lembrete de retorno de pacientes
+from dotenv import load_dotenv
+
 import yagmail
 from datetime import datetime
 import pandas
-tabela = pandas.read_csv("retornomasto.csv")
-print(tabela)
-#contato que irá receber o email
-contato = input("Insira seu email")
-#Descobrir data atual
-datahoje = datetime.now().strftime("%d/%m/%y")
-#comparar data atual com data de retorno e enviar o email
-emailServer = yagmail.SMTP("remetente","senha")
+import os
+
+load_dotenv()
+
+tabela = pandas.read_csv("retornos.csv").to_dict('records')
+
+dataHoje = datetime.today().date()
+
+emailServer = yagmail.SMTP(
+    os.getenv("USUARIO_SMTP"),
+    os.getenv("SENHA_SMTP")
+)
+
 for linha in tabela:
-    RETORNO = datetime.strptime(str(linha["RETORNO"]).strip(), "%d/%m/%y").strftime("%d/%m/%y")
-    PACIENTE = tabela.loc[linha,"PACIENTE"]
-    HORARIO = tabela.loc[linha,"HORARIO"]
-    if RETORNO -datahoje:
-        emailServer.send(contato,subject= "CAPTAR PACIENTE DE RETORNO MASTOLOGIA", contents= PACIENTE + HORARIO + RETORNO)
+    dataRetorno = datetime.strptime(linha["RETORNO"], "%d/%m/%Y").date()
+
+    PACIENTE = linha["PACIENTE"]
+    HORARIO = linha["HORARIO"]
+    OBS = linha["OBS"]
+    if dataRetorno == dataHoje:
+        emailServer.send(
+            os.getenv("EMAIL_RETORNO"),
+            subject= "CAPTAR PACIENTE DE RETORNO", 
+            contents= f"{PACIENTE}  {HORARIO} {OBS} {linha["RETORNO"]}"
+        )
 
